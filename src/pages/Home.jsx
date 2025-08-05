@@ -14,12 +14,34 @@ export default function Home() {
   };
 
   return (
-    <div className="page">
-      <h2>Welcome to the SAT Tracker!</h2>
-      <button className="btn-primary" onClick={() => setShowModal(true)}>
-        Start Practice Test
-      </button>
-
+    <div
+      className="page"
+      style={{
+        minHeight: "80vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: "16px",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+          padding: "3rem 2.5rem",
+          minWidth: "350px",
+          maxWidth: "90vw",
+          textAlign: "center",
+        }}
+      >
+        <h2 style={{ fontSize: "2.2rem", marginBottom: "1.5rem" }}>
+          Welcome to the SAT Tracker!
+        </h2>
+        <button className="btn-primary" onClick={() => setShowModal(true)}>
+          Start Practice Test
+        </button>
+      </div>
       {showModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
