@@ -48,7 +48,7 @@ body {
 
 /* Header */
 .header {
-  background-color: #1a73e8;
+  background-color: rgb(255, 223, 233);
   padding: 1rem 2rem;
   color: white;
   display: flex;
