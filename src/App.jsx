@@ -5,6 +5,7 @@ import Scores from "./pages/Scores";
 import Questions from "./pages/Questions";
 import Test from "./pages/Test";
 import TestResults from "./pages/TestResults";
+import StudySession from "./pages/StudySession";
 
 
 export default function App() {
@@ -17,6 +18,8 @@ export default function App() {
           <Route path="/questions" element={<Questions />} />
           <Route path="/test" element={<Test />} />
           <Route path="/test/results" element={<TestResults />} />
+          <Route path="/studysession" element={<StudySession />} />
+
 
         </Routes>
       </Layout>
