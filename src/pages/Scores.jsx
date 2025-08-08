@@ -10,9 +10,7 @@ export default function Scores() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setScores(parsed);
-        }
+        if (Array.isArray(parsed)) setScores(parsed);
       } catch (err) {
         console.error("Error parsing scores:", err);
       }
@@ -32,70 +30,83 @@ export default function Scores() {
   };
 
   return (
-    <div className="page">
-      <h2>{filterTestName ? `Scores for "${filterTestName}"` : "Past Scores"}</h2>
+    <div className="page scores-page">
+      <header className="scores-header">
+        <h2 className="scores-title">
+          {filterTestName ? `Scores for “${filterTestName}”` : "Past Scores"}
+        </h2>
+      </header>
 
       {displayScores.length === 0 ? (
-        <p>No scores logged yet.</p>
+        <div className="card empty-state">
+          <h3>No scores yet</h3>
+          <p className="muted">
+            When you complete a practice test, results will appear here.
+          </p>
+        </div>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-          <thead style={{ backgroundColor: "#f0f0f0" }}>
-            <tr>
-              <th style={thStyle}>Date</th>
-              <th style={thStyle}>Section</th>
-              <th style={thStyle}>Score</th>
-              <th style={thStyle}>Test Name</th>
-              <th style={thStyle}>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayScores.map(
-              ({ id, date, section, score, totalScore, mathScore, englishScore, testName }) => (
-                <tr key={id} style={{ borderBottom: "1px solid #ddd" }}>
-                  <td style={tdStyle}>{date || "—"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>{section || "—"}</td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>
-                    {score !== undefined
-                      ? score
-                      : totalScore !== undefined
-                      ? `Total: ${totalScore} (M: ${mathScore}, E: ${englishScore})`
-                      : "—"}
-                  </td>
-                  <td style={tdStyle}>
-                    <Link to={`/questions?testName=${encodeURIComponent(testName || "")}`}>
-                      {testName || "Untitled"}
-                    </Link>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: "center" }}>
-                    <button
-                      onClick={() => handleDelete(id)}
-                      style={{
-                        color: "red",
-                        border: "none",
-                        background: "transparent",
-                        fontSize: "1.2rem",
-                        cursor: "pointer",
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
+        <div className="table-wrap card">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th className="center">Section</th>
+                <th className="center">Score</th>
+                <th>Test Name</th>
+                <th className="center">Delete</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayScores.map(
+                ({ id, date, section, score, totalScore, mathScore, englishScore, testName }) => (
+                  <tr key={id}>
+                    <td>{date || "—"}</td>
+                    <td className="center">
+                      {section ? (
+                        <span className="badge">{section}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="center">
+                      {score !== undefined
+                        ? score
+                        : totalScore !== undefined
+                        ? (
+                            <span className="score-split">
+                              <span className="score-total">Total: {totalScore}</span>
+                              <span className="score-part">M: {mathScore ?? "—"}</span>
+                              <span className="score-part">E: {englishScore ?? "—"}</span>
+                            </span>
+                          )
+                        : "—"}
+                    </td>
+                    <td>
+                      <Link
+                        className="link"
+                        to={`/questions?testName=${encodeURIComponent(testName || "")}`}
+                        title="View questions for this test"
+                      >
+                        {testName || "Untitled"}
+                      </Link>
+                    </td>
+                    <td className="center">
+                      <button
+                        className="icon-btn danger"
+                        aria-label="Delete score"
+                        onClick={() => handleDelete(id)}
+                        title="Delete"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
 }
-
-const thStyle = {
-  padding: "0.75rem",
-  textAlign: "left",
-  borderBottom: "2px solid #ccc",
-};
-
-const tdStyle = {
-  padding: "0.75rem",
-};

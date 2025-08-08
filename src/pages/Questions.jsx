@@ -1,15 +1,9 @@
-// ✅ Revamped Questions.jsx with export to CSV and PDF
+// Questions.jsx
 import React, { useEffect, useState, useRef } from "react";
 import html2pdf from "html2pdf.js";
-import { Doughnut } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from 'chart.js';
+import { Doughnut } from "react-chartjs-2";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
-// Register the components with Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function Questions() {
@@ -21,7 +15,8 @@ export default function Questions() {
   const [selectedTest, setSelectedTest] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
   const [editingTagId, setEditingTagId] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showAddBox, setShowAddBox] = useState(false);
+  const [showPdfDiv, setShowPdfDiv] = useState(false);
 
   const [newQuestion, setNewQuestion] = useState({
     question: "",
@@ -31,7 +26,6 @@ export default function Questions() {
     tags: "",
     choices: "",
   });
-  const [showAddBox, setShowAddBox] = useState(false);
 
   const pdfRef = useRef(null);
 
@@ -39,16 +33,15 @@ export default function Questions() {
     const stored = JSON.parse(localStorage.getItem("wrongQuestions") || "[]");
     setQuestions(stored);
     const tags = new Set();
-    stored.forEach(q => q.tags?.forEach(tag => tags.add(tag)));
+    stored.forEach((q) => q.tags?.forEach((t) => tags.add(t)));
     setAvailableTags([...tags]);
   }, []);
 
-  const toggleExpand = (id) => {
-    setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  const toggleExpand = (id) =>
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const toggleReviewed = (id) => {
-    const updated = questions.map(q =>
+    const updated = questions.map((q) =>
       q.id === id ? { ...q, reviewed: !q.reviewed } : q
     );
     setQuestions(updated);
@@ -56,8 +49,16 @@ export default function Questions() {
   };
 
   const handleTagEdit = (id, newTags) => {
-    const updated = questions.map(q =>
-      q.id === id ? { ...q, tags: newTags.split(",").map(t => t.trim()).filter(Boolean) } : q
+    const updated = questions.map((q) =>
+      q.id === id
+        ? {
+            ...q,
+            tags: newTags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean),
+          }
+        : q
     );
     setQuestions(updated);
     localStorage.setItem("wrongQuestions", JSON.stringify(updated));
@@ -65,12 +66,12 @@ export default function Questions() {
   };
 
   const handleDeleteQuestion = (id) => {
-    const updated = questions.filter(q => q.id !== id);
+    const updated = questions.filter((q) => q.id !== id);
     setQuestions(updated);
     localStorage.setItem("wrongQuestions", JSON.stringify(updated));
   };
 
-  const filtered = questions.filter(q => {
+  const filtered = questions.filter((q) => {
     const matchesReview = onlyUnreviewed ? !q.reviewed : true;
     const matchesTag = selectedTag ? q.tags?.includes(selectedTag) : true;
     const matchesTest = selectedTest ? q.testName === selectedTest : true;
@@ -78,22 +79,32 @@ export default function Questions() {
     return matchesReview && matchesTag && matchesTest && matchesSection;
   });
 
-  const allTests = [...new Set(questions.map(q => q.testName))];
-  const allSections = [...new Set(questions.map(q => q.section))];
+  const allTests = [...new Set(questions.map((q) => q.testName))];
+  const allSections = [...new Set(questions.map((q) => q.section))];
 
   const exportToCSV = () => {
-    const headers = ["Test Name", "Section", "Question", "User Answer", "Correct Answer", "Reviewed", "Tags"];
-    const rows = filtered.map(q => [
+    const headers = [
+      "Test Name",
+      "Section",
+      "Question",
+      "User Answer",
+      "Correct Answer",
+      "Reviewed",
+      "Tags",
+    ];
+    const rows = filtered.map((q) => [
       q.testName,
       q.section,
       q.question,
       q.userAnswer,
       q.correctAnswer,
       q.reviewed ? "Yes" : "No",
-      q.tags?.join(";") || ""
+      q.tags?.join(";") || "",
     ]);
-    const csvContent = [headers, ...rows].map(e => e.map(x => `"${x}"`).join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [headers, ...rows]
+      .map((e) => e.map((x) => `"${x}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
     link.setAttribute("download", "filtered_questions.csv");
@@ -102,50 +113,47 @@ export default function Questions() {
     document.body.removeChild(link);
   };
 
-  const [showPdfDiv, setShowPdfDiv] = useState(false);
-
   const exportToPDF = async () => {
     setShowPdfDiv(true);
-    // Wait for the div to be visible in the DOM
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((r) => setTimeout(r, 100));
     if (pdfRef.current) {
-      await html2pdf().from(pdfRef.current).set({ margin: 0.5, filename: 'filtered_questions.pdf', html2canvas: { scale: 2 } }).save();
+      await html2pdf()
+        .from(pdfRef.current)
+        .set({
+          margin: 0.5,
+          filename: "filtered_questions.pdf",
+          html2canvas: { scale: 2 },
+        })
+        .save();
     }
     setShowPdfDiv(false);
   };
 
-  // Add these counts before the return statement
+  // Stats for chart
   const totalCount = filtered.length;
-  const reviewedCount = filtered.filter(q => q.reviewed).length;
+  const reviewedCount = filtered.filter((q) => q.reviewed).length;
   const unreviewedCount = totalCount - reviewedCount;
 
   const centerTextPlugin = {
-    id: 'centerText',
+    id: "centerText",
     beforeDraw: (chart) => {
-      const { width } = chart;
-      const { height } = chart;
-      const ctx = chart.ctx;
+      const { width, height, ctx } = chart;
       ctx.restore();
-
-      const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-      const reviewed = chart.data.datasets[0].data[0];
+      const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0) || 1;
+      const reviewed = chart.data.datasets[0].data[0] || 0;
       const percentage = Math.round((reviewed / total) * 100);
-
       const fontSize = (height / 140).toFixed(2);
-      ctx.font = `${fontSize}em sans-serif`;
+      ctx.font = `${fontSize}em system-ui, -apple-system, Segoe UI, Roboto, Arial`;
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "#333";
-
+      ctx.fillStyle = "var(--text)";
       const text = `${percentage}%`;
       const textX = Math.round((width - ctx.measureText(text).width) / 2);
       const textY = height / 2;
-
       ctx.fillText(text, textX, textY);
       ctx.save();
-    }
+    },
   };
 
-  // Add Question Handler
   const handleAddQuestion = (e) => {
     e.preventDefault();
     if (!newQuestion.question.trim()) return;
@@ -155,11 +163,17 @@ export default function Questions() {
       userAnswer: newQuestion.userAnswer,
       correctAnswer: newQuestion.correctAnswer,
       section: newQuestion.section,
-      testName: "", // Not tied to a test
+      testName: "", // manual adds not tied to test
       reviewed: false,
-      tags: newQuestion.tags.split(",").map(t => t.trim()).filter(Boolean),
+      tags: newQuestion.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
       choices: newQuestion.choices
-        ? newQuestion.choices.split("|").map(c => c.trim()).filter(Boolean)
+        ? newQuestion.choices
+            .split("|")
+            .map((c) => c.trim())
+            .filter(Boolean)
         : [],
     };
     const updated = [questionObj, ...questions];
@@ -177,366 +191,305 @@ export default function Questions() {
   };
 
   return (
-    <div className="page" style={{ maxWidth: "1000px", margin: "auto", padding: "2rem" }}>
-      <h2 style={{ marginBottom: "1rem", fontSize: "2rem", fontWeight: 700 }}>
-        📚 Review Questions
-      </h2>
+    <div className="page questions-page">
+      <header className="q-header">
+        <h2 className="q-title">Review Questions</h2>
+        <div className="q-toolbar">
+          <button className="btn-primary" onClick={() => setShowAddBox((v) => !v)}>
+            {showAddBox ? "Close" : "Add Question"}
+          </button>
+          <div className="q-export">
+            <button className="btn-secondary" onClick={exportToCSV}>Export CSV</button>
+            <button className="btn-secondary" onClick={exportToPDF}>Export PDF</button>
+          </div>
+        </div>
+      </header>
 
-      {/* Add Question Button */}
-      <div style={{ marginBottom: "1.5rem" }}>
-        <button
-          style={{
-            backgroundColor: "#ffe0f0",
-            color: "#b71c5c",
-            border: "1px solid #f8bbd0",
-            borderRadius: "8px",
-            padding: "0.6rem 1.2rem",
-            fontWeight: "bold",
-            cursor: "pointer",
-            marginRight: "1rem"
-          }}
-          onClick={() => setShowAddBox((prev) => !prev)}
-        >
-          ➕ Add Question
-        </button>
-      </div>
-
-      {/* Add Question Form */}
       {showAddBox && (
-        <form
-          onSubmit={handleAddQuestion}
-          style={{
-            background: "#fff4fa",
-            border: "1px solid #f8bbd0",
-            borderRadius: "10px",
-            padding: "1.5rem",
-            marginBottom: "2rem",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            maxWidth: "600px"
-          }}
-        >
-          <h4 style={{ marginBottom: "1rem" }}>Add a New Question</h4>
-          <div style={{ marginBottom: "0.7rem" }}>
-            <label>
-              Question:<br />
+        <form className="card q-add" onSubmit={handleAddQuestion}>
+          <h3 className="q-section-title">Add a new question</h3>
+          <div className="q-grid">
+            <label className="field">
+              <span className="field-label">Question</span>
               <textarea
                 value={newQuestion.question}
-                onChange={e => setNewQuestion(q => ({ ...q, question: e.target.value }))}
+                onChange={(e) =>
+                  setNewQuestion((q) => ({ ...q, question: e.target.value }))
+                }
                 required
-                style={{ width: "100%", minHeight: "60px", borderRadius: "6px", border: "1px solid #ccc", padding: "0.5rem" }}
               />
             </label>
-          </div>
-          <div style={{ marginBottom: "0.7rem" }}>
-            <label>
-              Your Answer:<br />
+
+            <label className="field">
+              <span className="field-label">Your answer</span>
               <input
                 type="text"
                 value={newQuestion.userAnswer}
-                onChange={e => setNewQuestion(q => ({ ...q, userAnswer: e.target.value }))}
-                style={{ width: "100%", borderRadius: "6px", border: "1px solid #ccc", padding: "0.5rem" }}
+                onChange={(e) =>
+                  setNewQuestion((q) => ({ ...q, userAnswer: e.target.value }))
+                }
               />
             </label>
-          </div>
-          <div style={{ marginBottom: "0.7rem" }}>
-            <label>
-              Correct Answer:<br />
+
+            <label className="field">
+              <span className="field-label">Correct answer</span>
               <input
                 type="text"
                 value={newQuestion.correctAnswer}
-                onChange={e => setNewQuestion(q => ({ ...q, correctAnswer: e.target.value }))}
-                style={{ width: "100%", borderRadius: "6px", border: "1px solid #ccc", padding: "0.5rem" }}
+                onChange={(e) =>
+                  setNewQuestion((q) => ({ ...q, correctAnswer: e.target.value }))
+                }
               />
             </label>
-          </div>
-          <div style={{ marginBottom: "0.7rem" }}>
-            <label>
-              Section:<br />
+
+            <label className="field">
+              <span className="field-label">Section</span>
               <input
                 type="text"
+                placeholder="e.g., Math, English"
                 value={newQuestion.section}
-                onChange={e => setNewQuestion(q => ({ ...q, section: e.target.value }))}
-                placeholder="e.g. Math, English"
-                style={{ width: "100%", borderRadius: "6px", border: "1px solid #ccc", padding: "0.5rem" }}
+                onChange={(e) =>
+                  setNewQuestion((q) => ({ ...q, section: e.target.value }))
+                }
               />
             </label>
-          </div>
-          <div style={{ marginBottom: "0.7rem" }}>
-            <label>
-              Tags (comma separated):<br />
+
+            <label className="field">
+              <span className="field-label">Tags</span>
               <input
                 type="text"
+                placeholder="comma separated (algebra, geometry)"
                 value={newQuestion.tags}
-                onChange={e => setNewQuestion(q => ({ ...q, tags: e.target.value }))}
-                placeholder="e.g. algebra, geometry"
-                style={{ width: "100%", borderRadius: "6px", border: "1px solid #ccc", padding: "0.5rem" }}
+                onChange={(e) =>
+                  setNewQuestion((q) => ({ ...q, tags: e.target.value }))
+                }
               />
             </label>
-          </div>
-          <div style={{ marginBottom: "0.7rem" }}>
-            <label>
-              Choices (optional, separate with |):<br />
+
+            <label className="field">
+              <span className="field-label">Choices (optional)</span>
               <input
                 type="text"
-                value={newQuestion.choices}
-                onChange={e => setNewQuestion(q => ({ ...q, choices: e.target.value }))}
                 placeholder="A | B | C | D"
-                style={{ width: "100%", borderRadius: "6px", border: "1px solid #ccc", padding: "0.5rem" }}
+                value={newQuestion.choices}
+                onChange={(e) =>
+                  setNewQuestion((q) => ({ ...q, choices: e.target.value }))
+                }
               />
             </label>
           </div>
-          <button
-            type="submit"
-            style={{
-              backgroundColor: "#b2dfdb",
-              color: "#00695c",
-              border: "1px solid #80cbc4",
-              borderRadius: "8px",
-              padding: "0.6rem 1.2rem",
-              fontWeight: "bold",
-              cursor: "pointer",
-              marginRight: "1rem"
-            }}
-          >
-            Add
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAddBox(false)}
-            style={{
-              backgroundColor: "#fff",
-              color: "#b71c5c",
-              border: "1px solid #f8bbd0",
-              borderRadius: "8px",
-              padding: "0.6rem 1.2rem",
-              fontWeight: "bold",
-              cursor: "pointer"
-            }}
-          >
-            Cancel
-          </button>
+
+          <div className="q-actions">
+            <button className="btn-primary" type="submit">Add</button>
+            <button
+              className="btn-secondary"
+              type="button"
+              onClick={() => setShowAddBox(false)}
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          gap: "2rem",
-          marginBottom: "2rem"
-        }}
-      >
-        {/* Filters Card */}
-        <div
-          style={{
-            flex: "1 1 250px",
-            background: "#fdfdfd",
-            border: "1px solid #e0e0e0",
-            borderRadius: "10px",
-            padding: "1rem 1.25rem",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.03)"
-          }}
-        >
-          <h4 style={{ marginBottom: "0.75rem" }}>🎯 Filters</h4>
+      <section className="q-top">
+        <div className="card q-filters">
+          <h3 className="q-section-title">Filters</h3>
+          <div className="q-grid">
+            <label className="field">
+              <span className="field-label">Test</span>
+              <select value={selectedTest} onChange={(e) => setSelectedTest(e.target.value)}>
+                <option value="">All</option>
+                {allTests.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
 
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>
-            📘 Test:
-            <select value={selectedTest} onChange={e => setSelectedTest(e.target.value)}
-              style={{ width: "100%", padding: "0.4rem", marginTop: "0.2rem", borderRadius: "6px", border: "1px solid #ccc" }}>
-              <option value="">All</option>
-              {allTests.map(test => <option key={test} value={test}>{test}</option>)}
-            </select>
-          </label>
+            <label className="field">
+              <span className="field-label">Section</span>
+              <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)}>
+                <option value="">All</option>
+                {allSections.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </label>
 
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>
-            📘 Section:
-            <select value={selectedSection} onChange={e => setSelectedSection(e.target.value)}
-              style={{ width: "100%", padding: "0.4rem", marginTop: "0.2rem", borderRadius: "6px", border: "1px solid #ccc" }}>
-              <option value="">All</option>
-              {allSections.map(sec => <option key={sec} value={sec}>{sec}</option>)}
-            </select>
-          </label>
+            <label className="field">
+              <span className="field-label">Tag</span>
+              <select value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)}>
+                <option value="">All</option>
+                {availableTags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </label>
 
-          <label style={{ display: "block", marginBottom: "0.5rem" }}>
-            🏷️ Tag:
-            <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)}
-              style={{ width: "100%", padding: "0.4rem", marginTop: "0.2rem", borderRadius: "6px", border: "1px solid #ccc" }}>
-              <option value="">All</option>
-              {availableTags.map(tag => <option key={tag} value={tag}>{tag}</option>)}
-            </select>
-          </label>
-
-          <label style={{
-            display: "flex", alignItems: "center",
-            marginTop: "0.5rem",
-            background: "#fff4f4",
-            padding: "0.5rem",
-            border: "1px solid #d32f2f",
-            borderRadius: "6px",
-            fontWeight: 500,
-            color: "#d32f2f"
-          }}>
-            <input
-              type="checkbox"
-              checked={onlyUnreviewed}
-              onChange={() => setOnlyUnreviewed(prev => !prev)}
-              style={{ marginRight: "0.5rem" }}
-            />
-            Show only unreviewed
-          </label>
-        </div>
-
-        {/* Stats Card */}
-        <div
-          style={{
-            flex: "1 1 180px",
-            background: "#f7f9fc",
-            border: "1px solid #dbe1ec",
-            borderRadius: "10px",
-            padding: "1rem",
-            fontSize: "1rem",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
-          }}
-        >
-          <h4 style={{ marginBottom: "0.75rem" }}>📊 Stats</h4>
-          <div><strong style={{ color: "#1976d2" }}>Total:</strong> {filtered.length}</div>
-          <div><strong style={{ color: "#388e3c" }}>Reviewed:</strong> {filtered.filter(q => q.reviewed).length}</div>
-          <div><strong style={{ color: "#d32f2f" }}>Unreviewed:</strong> {filtered.filter(q => !q.reviewed).length}</div>
-        <div style={{ width: "140px", height: "140px", margin: "0 auto" }}>
-          <Doughnut
-              data={{
-                  labels: ['Reviewed', 'Unreviewed'],
-                  datasets: [{
-                  data: [
-                      filtered.filter(q => q.reviewed).length,
-                      filtered.filter(q => !q.reviewed).length
-                  ],
-                  backgroundColor: ['#4caf50', '#e57373']
-                  }]
-              }}
-              options={{
-                  plugins: {
-                  legend: { display: false },
-                  centerText: true  // enables our custom plugin
-                  },
-                  cutout: '60%'
-              }}
-              plugins={[centerTextPlugin]}
+            <label className="field q-checkbox">
+              <input
+                type="checkbox"
+                checked={onlyUnreviewed}
+                onChange={() => setOnlyUnreviewed((p) => !p)}
               />
+              <span>Show only unreviewed</span>
+            </label>
           </div>
         </div>
 
-        {/* Export Buttons */}
-        <div style={{
-          flex: "1 1 180px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          gap: "0.75rem"
-        }}>
-          <h4 style={{ marginBottom: "0.5rem" }}>📁 Export</h4>
-          <button
-            onClick={exportToCSV}
-            style={{ backgroundColor: "#dcedc8", border: "1px solid #aed581", padding: "0.6rem", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
-          >
-            📤 CSV
-          </button>
-          <button
-            onClick={exportToPDF}
-            style={{ backgroundColor: "#b3e5fc", border: "1px solid #81d4fa", padding: "0.6rem", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}
-          >
-            🧾 PDF
-          </button>
-        </div>
-      </div>
-      <div
-        ref={pdfRef}
-        style={{
-          marginTop: "1rem",
-          display: showPdfDiv ? "block" : "none"
-        }}
-      >
-        <h3 style={{ textAlign: "center", marginBottom: "1rem" }}>Filtered Questions</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
-            <thead>
-              <tr style={{ backgroundColor: "#f1f1f1" }}>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Test</th>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Section</th>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Question</th>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Your Answer</th>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Correct Answer</th>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Reviewed</th>
-                <th style={{ border: "1px solid #ccc", padding: "8px" }}>Tags</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((q, index) => (
-                <tr key={index}>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.testName}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.section}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.question}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.userAnswer}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.correctAnswer}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.reviewed ? "Yes" : "No"}</td>
-                  <td style={{ border: "1px solid #ccc", padding: "8px" }}>{q.tags?.join(", ")}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-      </div>
-        {filtered.map(q => (
-          <div key={q.id} style={{ border: "1px solid #ccc", borderRadius: "8px", padding: "1rem", marginBottom: "1rem", backgroundColor: q.reviewed ? "#f9f9f9" : "#fff4f4" }}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <strong>{q.question}</strong>
-              <button onClick={() => toggleExpand(q.id)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                {expanded[q.id] ? "▲" : "▼"}
-              </button>
+        <div className="card q-stats">
+          <h3 className="q-section-title">Stats</h3>
+          <div className="q-kpis">
+            <div className="kpi">
+              <div className="kpi-label">Total</div>
+              <div className="kpi-value">{totalCount}</div>
             </div>
+            <div className="kpi">
+              <div className="kpi-label">Reviewed</div>
+              <div className="kpi-value">{reviewedCount}</div>
+            </div>
+            <div className="kpi">
+              <div className="kpi-label">Unreviewed</div>
+              <div className="kpi-value">{unreviewedCount}</div>
+            </div>
+          </div>
 
-            {/* Show choices if multiple choice */}
+          <div className="q-chart">
+            <Doughnut
+              data={{
+                labels: ["Reviewed", "Unreviewed"],
+                datasets: [
+                  {
+                    data: [reviewedCount, unreviewedCount],
+                    backgroundColor: ["#22c55e", "#ef4444"], /* green & red */
+                    borderWidth: 0,
+                  },
+                ],
+              }}
+              options={{
+                plugins: { legend: { display: false }, centerText: true },
+                cutout: "60%",
+              }}
+              plugins={[centerTextPlugin]}
+            />
+          </div>
+        </div>
+
+        <div className="q-export card q-export-card">
+          <h3 className="q-section-title">Export</h3>
+          <div className="q-export-actions">
+            <button className="btn-secondary" onClick={exportToCSV}>CSV</button>
+            <button className="btn-secondary" onClick={exportToPDF}>PDF</button>
+          </div>
+        </div>
+      </section>
+
+      {/* Hidden print container for PDF */}
+      <div ref={pdfRef} className={`q-print ${showPdfDiv ? "show" : ""}`}>
+        <h3>Filtered Questions</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Test</th>
+              <th>Section</th>
+              <th>Question</th>
+              <th>Your Answer</th>
+              <th>Correct Answer</th>
+              <th>Reviewed</th>
+              <th>Tags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((q, i) => (
+              <tr key={i}>
+                <td>{q.testName}</td>
+                <td>{q.section}</td>
+                <td>{q.question}</td>
+                <td>{q.userAnswer}</td>
+                <td>{q.correctAnswer}</td>
+                <td>{q.reviewed ? "Yes" : "No"}</td>
+                <td>{q.tags?.join(", ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Questions list */}
+      <div className="q-list">
+        {filtered.map((q) => (
+          <article
+            key={q.id}
+            className={`q-item card ${q.reviewed ? "is-reviewed" : ""}`}
+          >
+            <header className="q-item-head">
+              <strong className="q-item-question">{q.question}</strong>
+              <div className="q-item-head-actions">
+                <span className={`chip ${q.reviewed ? "chip-success" : "chip-danger"}`}>
+                  {q.reviewed ? "Reviewed" : "Unreviewed"}
+                </span>
+                <button
+                  className="icon-toggle"
+                  onClick={() => toggleExpand(q.id)}
+                  aria-expanded={!!expanded[q.id]}
+                >
+                  {expanded[q.id] ? "▲" : "▼"}
+                </button>
+              </div>
+            </header>
+
             {Array.isArray(q.choices) && q.choices.length > 0 && (
-              <ul style={{ margin: "0.5rem 0 0.5rem 1rem", padding: 0 }}>
-                {q.choices.map((choice, idx) => (
-                  <li key={idx} style={{ listStyle: "disc", marginBottom: "2px" }}>{choice}</li>
+              <ul className="q-choices">
+                {q.choices.map((c, idx) => (
+                  <li key={idx}>{c}</li>
                 ))}
               </ul>
             )}
 
             {expanded[q.id] && (
-              <div style={{ marginTop: "0.5rem" }}>
-                <p><strong>Your Answer:</strong> {q.userAnswer}</p>
-                <p><strong>Correct Answer:</strong> {q.correctAnswer}</p>
+              <div className="q-detail">
+                <p><span className="muted">Your answer:</span> {q.userAnswer || "—"}</p>
+                <p><span className="muted">Correct answer:</span> {q.correctAnswer || "—"}</p>
               </div>
             )}
 
-            <button onClick={() => toggleReviewed(q.id)} style={{ marginTop: "0.5rem" }}>
-              {q.reviewed ? "✅ Reviewed" : "🔍 Unreviewed"}
-            </button>
+            <div className="q-item-actions">
+              <button className="btn-secondary" onClick={() => toggleReviewed(q.id)}>
+                {q.reviewed ? "Mark unreviewed" : "Mark reviewed"}
+              </button>
 
-            <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <p><strong>Tags:</strong> {q.tags?.join(", ") || "None"}</p>
-              {editingTagId === q.id ? (
-                <div>
+              <div className="q-tags">
+                <span className="muted">Tags:</span>{" "}
+                {q.tags?.length ? q.tags.join(", ") : "None"}
+                {editingTagId === q.id ? (
                   <input
+                    className="q-tag-editor"
                     type="text"
                     defaultValue={q.tags?.join(", ") || ""}
                     onBlur={(e) => handleTagEdit(q.id, e.target.value)}
                     autoFocus
                   />
-                </div>
-              ) : (
-                <>
-                  <button onClick={() => setEditingTagId(q.id)} style={{ float: "right" }}>✏️ Edit Tags</button>
-                  <button onClick={() => handleDeleteQuestion(q.id)} style={{ color: "red", marginLeft: "0.5rem" }}>🗑️ Delete</button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setEditingTagId(q.id)}
+                    >
+                      Edit tags
+                    </button>
+                    <button
+                      className="btn-secondary danger"
+                      onClick={() => handleDeleteQuestion(q.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          </article>
         ))}
+      </div>
     </div>
-    
   );
 }
-
-
